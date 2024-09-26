@@ -1,5 +1,8 @@
 import os
 import argparse
+import torch
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 parser=argparse.ArgumentParser()
 parser.add_argument(
         "--data_path",

@@ -2,6 +2,8 @@ import argparse, os, sys, datetime, glob, importlib, csv
 import numpy as np
 import time
 import torch
+import sys
+sys.path.append('/data/ymliu/benchmark/anomalydiffusion/taming-transformers')
 
 import torchvision
 import pytorch_lightning as pl
@@ -20,6 +22,9 @@ from pytorch_lightning.utilities import rank_zero_info
 
 from ldm.data.base import Txt2ImgIterableBaseDataset
 from ldm.util import instantiate_from_config
+from transformers import BertTokenizerFast
+
+tokenizer = BertTokenizerFast.from_pretrained("/data/ymliu/benchmark/anomalydiffusion/bert-base-uncased/", local_files_only=True)
 
 
 def load_model_from_config(config, ckpt, verbose=False):
@@ -819,15 +824,30 @@ if __name__ == "__main__":
 
         # configure learning rate
         bs, base_lr = config.data.params.batch_size, config.model.base_learning_rate
+ #       if not cpu:
+  #          ngpu = len(lightning_config.trainer.gpus.strip(",").split(','))
+  #      else:
+  #          ngpu = 1
+  #      if 'accumulate_grad_batches' in lightning_config.trainer:
+  #          accumulate_grad_batches = lightning_config.trainer.accumulate_grad_batches
+   #     else:
+   #         accumulate_grad_batches = 1
+  #      print(f"accumulate_grad_batches = {accumulate_grad_batches}")
         if not cpu:
-            ngpu = len(lightning_config.trainer.gpus.strip(",").split(','))
+            gpus = lightning_config.trainer.gpus
+            if isinstance(gpus, int):
+                gpus = str(gpus)
+            
+            ngpu = len(gpus.strip(",").split(','))
         else:
             ngpu = 1
+
         if 'accumulate_grad_batches' in lightning_config.trainer:
             accumulate_grad_batches = lightning_config.trainer.accumulate_grad_batches
         else:
             accumulate_grad_batches = 1
         print(f"accumulate_grad_batches = {accumulate_grad_batches}")
+
         lightning_config.trainer.accumulate_grad_batches = accumulate_grad_batches
         if opt.scale_lr:
             model.learning_rate = accumulate_grad_batches * ngpu * bs * base_lr
